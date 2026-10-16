@@ -20,6 +20,9 @@ const NODE_COLORS: Record<string, string> = {
   decompressor: "#3b82f6",
   chain: "#10b981",
   compactor: "#8b5cf6",
+  pin: "#f97316",
+  scan_in: "#f97316",
+  scan_out: "#f97316",
 };
 
 const LEGEND = [
@@ -27,6 +30,7 @@ const LEGEND = [
   { kind: "decompressor", label: "Decompressor", color: NODE_COLORS.decompressor },
   { kind: "chain", label: "Scan Chain", color: NODE_COLORS.chain },
   { kind: "compactor", label: "Compactor", color: NODE_COLORS.compactor },
+  { kind: "pin", label: "Physical Pin", color: NODE_COLORS.pin },
 ];
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -41,6 +45,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 function nodeRadius(kind: string): number {
   if (kind === "controller") return 10;
   if (kind === "chain") return 7;
+  if (kind === "pin" || kind === "scan_in" || kind === "scan_out") return 6;
   return 8;
 }
 
@@ -285,6 +290,39 @@ export function TopologyConnectivityPanel({
                       fill={isSelected || isHovered ? "#e0f2fe" : "#a7f3d0"}
                       fontSize={9}
                       fontWeight={isSelected ? 700 : 400}
+                    >
+                      {n.label}
+                    </text>
+                  ) : n.kind === "scan_in" ? (
+                    <text
+                      x={cx - 10}
+                      y={cy + 3}
+                      fill={isHovered ? "#e0f2fe" : "#f97316"}
+                      fontSize={8}
+                      fontWeight={isHovered ? 700 : 400}
+                      textAnchor="end"
+                    >
+                      {n.label}
+                    </text>
+                  ) : n.kind === "scan_out" ? (
+                    <text
+                      x={cx + 10}
+                      y={cy + 3}
+                      fill={isHovered ? "#e0f2fe" : "#f97316"}
+                      fontSize={8}
+                      fontWeight={isHovered ? 700 : 400}
+                      textAnchor="start"
+                    >
+                      {n.label}
+                    </text>
+                  ) : n.kind === "pin" ? (
+                    <text
+                      x={cx}
+                      y={cy - r - 4}
+                      fill="#f97316"
+                      fontSize={9}
+                      fontWeight="bold"
+                      textAnchor="middle"
                     >
                       {n.label}
                     </text>

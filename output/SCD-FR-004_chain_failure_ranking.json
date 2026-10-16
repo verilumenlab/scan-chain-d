@@ -1,0 +1,208 @@
+{
+  "requirement_id": "SCD-FR-004",
+  "requirement": "Rank scan chains by failure frequency",
+  "acceptance_criteria": "Chains ranked based on failure frequency.",
+  "status": "satisfied",
+  "generated_at": "2026-09-09T16:39:52.760543+00:00",
+  "ranking_feature": {
+    "api": "pandas.Series.rank",
+    "default_method": "dense",
+    "methods": {
+      "average": "Tied values share the average of their ordinal ranks (default in pandas).",
+      "min": "Tied values all get the lowest (best) rank of the group (competition ranking).",
+      "max": "Tied values all get the highest (worst) rank of the group.",
+      "first": "Ties broken by order of appearance in the Series (stable, no shared ranks).",
+      "dense": "Like min, but ranks always increase by 1 between distinct groups (no gaps)."
+    },
+    "options": {
+      "ascending": "False \u2192 higher fail_count gets better (lower) rank number.",
+      "na_option": "How to rank NaNs: 'keep' | 'top' | 'bottom'.",
+      "pct": "If True, return percentile ranks in [0, 1] instead of ordinal ranks."
+    },
+    "fr004_usage": {
+      "column_ranked": "fail_count",
+      "method": "dense",
+      "ascending": false,
+      "pct": false,
+      "meaning": "Chains with more failures receive lower rank numbers (1 = worst)."
+    }
+  },
+  "summary": {
+    "total_fail_records": 2458,
+    "distinct_failing_chains": 17,
+    "top_failing_chain": "channel7",
+    "rank_method": "dense"
+  },
+  "ranking": [
+    {
+      "rank": 1,
+      "chain": "channel7",
+      "fail_count": 302,
+      "fail_pct": 12.286,
+      "cumulative_pct": 12.286,
+      "rank_method": "dense",
+      "lots_affected": 4,
+      "example_chain_id": "channel7"
+    },
+    {
+      "rank": 2,
+      "chain": "channel3",
+      "fail_count": 289,
+      "fail_pct": 11.758,
+      "cumulative_pct": 24.044,
+      "rank_method": "dense",
+      "lots_affected": 5,
+      "example_chain_id": "channel3"
+    },
+    {
+      "rank": 3,
+      "chain": "channel16",
+      "fail_count": 200,
+      "fail_pct": 8.137,
+      "cumulative_pct": 32.181,
+      "rank_method": "dense",
+      "lots_affected": 3,
+      "example_chain_id": "channel16"
+    },
+    {
+      "rank": 4,
+      "chain": "channel6",
+      "fail_count": 171,
+      "fail_pct": 6.957,
+      "cumulative_pct": 39.138,
+      "rank_method": "dense",
+      "lots_affected": 3,
+      "example_chain_id": "channel6"
+    },
+    {
+      "rank": 5,
+      "chain": "channel21",
+      "fail_count": 158,
+      "fail_pct": 6.428,
+      "cumulative_pct": 45.566,
+      "rank_method": "dense",
+      "lots_affected": 3,
+      "example_chain_id": "channel21"
+    },
+    {
+      "rank": 6,
+      "chain": "channel10",
+      "fail_count": 157,
+      "fail_pct": 6.387,
+      "cumulative_pct": 51.953,
+      "rank_method": "dense",
+      "lots_affected": 3,
+      "example_chain_id": "channel10"
+    },
+    {
+      "rank": 7,
+      "chain": "channel1",
+      "fail_count": 153,
+      "fail_pct": 6.225,
+      "cumulative_pct": 58.178,
+      "rank_method": "dense",
+      "lots_affected": 3,
+      "example_chain_id": "channel1"
+    },
+    {
+      "rank": 8,
+      "chain": "channel20",
+      "fail_count": 151,
+      "fail_pct": 6.143,
+      "cumulative_pct": 64.321,
+      "rank_method": "dense",
+      "lots_affected": 3,
+      "example_chain_id": "channel20"
+    },
+    {
+      "rank": 9,
+      "chain": "channel23",
+      "fail_count": 136,
+      "fail_pct": 5.533,
+      "cumulative_pct": 69.854,
+      "rank_method": "dense",
+      "lots_affected": 3,
+      "example_chain_id": "channel23"
+    },
+    {
+      "rank": 10,
+      "chain": "channel14",
+      "fail_count": 133,
+      "fail_pct": 5.411,
+      "cumulative_pct": 75.265,
+      "rank_method": "dense",
+      "lots_affected": 2,
+      "example_chain_id": "channel14"
+    },
+    {
+      "rank": 11,
+      "chain": "channel5",
+      "fail_count": 132,
+      "fail_pct": 5.37,
+      "cumulative_pct": 80.635,
+      "rank_method": "dense",
+      "lots_affected": 3,
+      "example_chain_id": "channel5"
+    },
+    {
+      "rank": 12,
+      "chain": "channel19",
+      "fail_count": 122,
+      "fail_pct": 4.963,
+      "cumulative_pct": 85.598,
+      "rank_method": "dense",
+      "lots_affected": 2,
+      "example_chain_id": "channel19"
+    },
+    {
+      "rank": 13,
+      "chain": "channel9",
+      "fail_count": 119,
+      "fail_pct": 4.841,
+      "cumulative_pct": 90.439,
+      "rank_method": "dense",
+      "lots_affected": 2,
+      "example_chain_id": "channel9"
+    },
+    {
+      "rank": 14,
+      "chain": "channel22",
+      "fail_count": 61,
+      "fail_pct": 2.482,
+      "cumulative_pct": 92.921,
+      "rank_method": "dense",
+      "lots_affected": 1,
+      "example_chain_id": "channel22"
+    },
+    {
+      "rank": 15,
+      "chain": "channel2",
+      "fail_count": 60,
+      "fail_pct": 2.441,
+      "cumulative_pct": 95.362,
+      "rank_method": "dense",
+      "lots_affected": 1,
+      "example_chain_id": "channel2"
+    },
+    {
+      "rank": 16,
+      "chain": "channel13",
+      "fail_count": 59,
+      "fail_pct": 2.4,
+      "cumulative_pct": 97.762,
+      "rank_method": "dense",
+      "lots_affected": 1,
+      "example_chain_id": "channel13"
+    },
+    {
+      "rank": 17,
+      "chain": "channel12",
+      "fail_count": 55,
+      "fail_pct": 2.238,
+      "cumulative_pct": 100.0,
+      "rank_method": "dense",
+      "lots_affected": 1,
+      "example_chain_id": "channel12"
+    }
+  ]
+}

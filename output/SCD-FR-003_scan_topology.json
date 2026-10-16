@@ -1,0 +1,199 @@
+{
+  "requirement_id": "SCD-FR-003",
+  "requirement": "Analyze scan chain topology",
+  "acceptance_criteria": "Scan topology loaded and visualized correctly.",
+  "status": "satisfied",
+  "generated_at": "2026-09-09T16:39:52.737150+00:00",
+  "stil_file": "Production_SCAN_stuck_at_1000pat.stil",
+  "summary": {
+    "total_chains": 23,
+    "max_chain_length": 234,
+    "total_flip_flops": 5382
+  },
+  "chains": [
+    {
+      "chain": "channel1",
+      "scan_length": 234,
+      "scan_in": "ETH_TXCLK",
+      "scan_out": "ETH_RXD3",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel1",
+      "scan_length": 234,
+      "scan_in": "SPI3_SCLK",
+      "scan_out": "GPO2",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel2",
+      "scan_length": 234,
+      "scan_in": "ETH_TXD0",
+      "scan_out": "ETH_RXCTL",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel3",
+      "scan_length": 234,
+      "scan_in": "ETH_TXD1",
+      "scan_out": "ETH_MDIO",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel4",
+      "scan_length": 234,
+      "scan_in": "ETH_TXD2",
+      "scan_out": "CAN0_RX",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel5",
+      "scan_length": 234,
+      "scan_in": "ETH_TXD3",
+      "scan_out": "CAN0_TX",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel6",
+      "scan_length": 234,
+      "scan_in": "ETH_TXCTL",
+      "scan_out": "CAN0_STBY",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel7",
+      "scan_length": 234,
+      "scan_in": "ETH_MDCLK",
+      "scan_out": "CAN1_RX",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel8",
+      "scan_length": 234,
+      "scan_in": "SPI0_SCLK",
+      "scan_out": "CAN1_TX",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel9",
+      "scan_length": 234,
+      "scan_in": "SPI0_SCSN",
+      "scan_out": "UART2_TX",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel10",
+      "scan_length": 234,
+      "scan_in": "SPI0_IO0_SDO",
+      "scan_out": "UART3_TX",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel11",
+      "scan_length": 234,
+      "scan_in": "SPI0_IO1_SDI",
+      "scan_out": "GPIO0",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel12",
+      "scan_length": 234,
+      "scan_in": "SPI0_IO2_WP",
+      "scan_out": "GPIO1",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel13",
+      "scan_length": 234,
+      "scan_in": "SPI0_IO3_RST",
+      "scan_out": "GPIO2",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel14",
+      "scan_length": 234,
+      "scan_in": "SPI1_SCSN",
+      "scan_out": "GPIO3",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel15",
+      "scan_length": 234,
+      "scan_in": "SPI1_SDO",
+      "scan_out": "GPIO4",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel16",
+      "scan_length": 234,
+      "scan_in": "SPI1_SDI",
+      "scan_out": "GPIO5",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel17",
+      "scan_length": 234,
+      "scan_in": "SPI2_SCLK",
+      "scan_out": "GPIO6",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel18",
+      "scan_length": 234,
+      "scan_in": "SPI2_SCSN",
+      "scan_out": "GPIO7",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel19",
+      "scan_length": 234,
+      "scan_in": "SPI2_IO0_SDO",
+      "scan_out": "GPIO8",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel20",
+      "scan_length": 234,
+      "scan_in": "SPI2_IO1_SDI",
+      "scan_out": "NETCLK",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel21",
+      "scan_length": 234,
+      "scan_in": "SPI2_IO2_WP",
+      "scan_out": "GPO0",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    },
+    {
+      "chain": "channel22",
+      "scan_length": 234,
+      "scan_in": "SPI2_IO3_RST",
+      "scan_out": "GPO1",
+      "scan_master_clock": "ETH_RXCLK",
+      "scan_inversion": 0
+    }
+  ]
+}

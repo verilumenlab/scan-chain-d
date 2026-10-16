@@ -195,12 +195,24 @@ def build_system_connectivity_data(
 
     sorted_chains = sorted(chains_detail, key=lambda c: _chain_sort_key(c.get("chain_name", "")))
     n = len(sorted_chains)
-    col_x = {"jtag": 0, "tap": 1, "edt": 2, "decomp": 3.2, "chain": 4.8, "comp": 6.2}
-    y_edt = 0.5
+    
+    col_x = {
+        "tdi": 0.0,
+        "jtag": 1.5,
+        "tap": 3.2,
+        "edt": 4.8,
+        "tdo": 6.8,
+        "scan_in": 0.5,
+        "decomp": 2.1,
+        "chain": 3.8,
+        "comp": 5.4,
+        "scan_out": 6.8,
+    }
+    y_edt = 0.95
 
     chain_positions: dict[str, tuple[float, float]] = {}
     for i, ch in enumerate(sorted_chains):
-        y = (i + 0.5) / n
+        y = 0.05 + (i * 0.8) / max(1, n - 1) if n > 1 else 0.45
         chain_positions[ch["scan_chain_id"]] = (col_x["chain"], y)
 
     decomp_chains: dict[str, list[float]] = {}
@@ -221,20 +233,30 @@ def build_system_connectivity_data(
     nodes: list[dict] = []
     edges: list[dict] = []
 
-    def _node(nid: str, x: float, y: float, label: str, kind: str, hover: str = "") -> None:
-        nodes.append({
+    def _node(nid: str, x: float, y: float, label: str, kind: str, hover: str = "", details: dict | None = None) -> None:
+        n_dict = {
             "id": nid,
             "x": x,
             "y": y,
             "label": label,
             "kind": kind,
             "hover": hover or label,
-        })
+        }
+        if details:
+            n_dict["details"] = details
+        nodes.append(n_dict)
 
-    _node("jtag", col_x["jtag"], y_edt, "JTAG", "controller", "JTAG Controller")
-    _node("tap", col_x["tap"], y_edt, "TAP", "controller", "TAP Controller")
-    _node("edt", col_x["edt"], y_edt, "EDT Engine", "controller", "EDT Compression Engine")
+    # 1. JTAG / Control path nodes
+    y_ctrl = 0.94
+    _node("tdi", col_x["tdi"], 0.98, "TDI", "pin", "JTAG Test Data Input Pin")
+    _node("tms", col_x["tdi"], 0.94, "TMS", "pin", "JTAG Test Mode Select Pin")
+    _node("tck", col_x["tdi"], 0.90, "TCK", "pin", "JTAG Test Clock Pin")
+    _node("jtag", col_x["jtag"], y_ctrl, "JTAG", "controller", "JTAG Controller")
+    _node("tap", col_x["tap"], y_ctrl, "TAP", "controller", "TAP Controller")
+    _node("edt", col_x["edt"], y_ctrl, "EDT Engine", "controller", "EDT Compression Engine")
+    _node("tdo", col_x["tdo"], y_ctrl, "TDO", "pin", "JTAG Test Data Output Pin")
 
+    # 2. Decompressors
     for pin, (dx, dy) in decomp_pos.items():
         short = pin.replace("edt_channels_in", "Decomp")
         _node(
@@ -242,32 +264,46 @@ def build_system_connectivity_data(
             f"Decompressor: {pin}<br>Chains: {len(decomp_chains[pin])}",
         )
 
+    # 3. Chains and physical ScanIn/ScanOut pins
     for ch in sorted_chains:
-        cx, cy = chain_positions[ch["scan_chain_id"]]
+        cid = ch["scan_chain_id"]
+        cx, cy = chain_positions[cid]
         inst = ch.get("instance_type", "")
         label = ch.get("chain_name", "")
+        scan_in = ch.get("scan_input_si") or "UNKNOWN"
+        scan_out = ch.get("scan_output_so") or "UNKNOWN"
+        
+        # Add ScanIn physical pin node
+        _node(
+            f"pin_in:{scan_in}", col_x["scan_in"], cy, scan_in, "scan_in",
+            f"Scan Input Pin: {scan_in} (for {label})"
+        )
+
+        # Add Scan Chain node itself
         hover = (
             f"{label} [{inst}] · {ch.get('chain_length')} FFs · "
-            f"SI: {ch.get('scan_input_si')} · SO: {ch.get('scan_output_so')}"
+            f"SI: {scan_in} · SO: {scan_out}"
         )
-        nodes.append({
-            "id": ch["scan_chain_id"],
-            "x": cx,
-            "y": cy,
-            "label": label,
-            "kind": "chain",
-            "hover": hover,
-            "details": {
+        _node(
+            cid, cx, cy, label, "chain", hover,
+            details={
                 "chain_name": label,
                 "instance_type": inst,
                 "chain_length": ch.get("chain_length"),
-                "scan_input_si": ch.get("scan_input_si"),
-                "scan_output_so": ch.get("scan_output_so"),
+                "scan_input_si": scan_in,
+                "scan_output_so": scan_out,
                 "clock_domain": ch.get("clock_domain"),
                 "scan_enable_se": ch.get("scan_enable_se"),
-            },
-        })
+            }
+        )
 
+        # Add ScanOut physical pin node
+        _node(
+            f"pin_out:{scan_out}", col_x["scan_out"], cy, scan_out, "scan_out",
+            f"Scan Output Pin: {scan_out} (from {label})"
+        )
+
+    # 4. Compactors
     for pin, (kx, ky) in comp_pos.items():
         short = pin.replace("edt_channels_out", "Comp")
         _node(
@@ -278,21 +314,36 @@ def build_system_connectivity_data(
     def _edge(a: str, b: str) -> None:
         edges.append({"from": a, "to": b})
 
+    # JTAG control path connections
+    _edge("tdi", "jtag")
+    _edge("tms", "jtag")
+    _edge("tck", "jtag")
     _edge("jtag", "tap")
     _edge("tap", "edt")
+    _edge("edt", "tdo")
+
+    # Connect EDT Engine to Decompressor and Compactor channels (as control paths)
     for pin in decomp_pos:
         _edge("edt", f"decomp:{pin}")
+    for pin in comp_pos:
+        _edge(f"comp:{pin}", "edt")
+
+    # Connect data path for each chain:
+    # ScanIn Pin -> Decompressor Channel -> Chain -> Compactor Channel -> ScanOut Pin
     for ch in sorted_chains:
         ca = ch.get("compression_association") or {}
         dp = ca.get("decompressor_pin")
         cp = ca.get("compactor_pin")
         cid = ch["scan_chain_id"]
+        scan_in = ch.get("scan_input_si") or "UNKNOWN"
+        scan_out = ch.get("scan_output_so") or "UNKNOWN"
+
         if dp:
+            _edge(f"pin_in:{scan_in}", f"decomp:{dp}")
             _edge(f"decomp:{dp}", cid)
         if cp:
             _edge(cid, f"comp:{cp}")
-    for pin in comp_pos:
-        _edge(f"comp:{pin}", "edt")
+            _edge(f"comp:{cp}", f"pin_out:{scan_out}")
 
     fg = full_graph or {}
     ratio = compression.get("compression_ratio", 0)

@@ -1,0 +1,22 @@
+{
+  "last_retrain_at": "2026-07-30T07:06:17.715786+00:00",
+  "last_feedback_count": 45,
+  "last_result": {
+    "gbm": {
+      "n_train": 1045,
+      "positive_rate": 0.8641148325358852,
+      "model_type": "sklearn_gbm_calibrated"
+    },
+    "random_forest": {
+      "cv_accuracy": 1.0,
+      "n_train": 2458
+    },
+    "steps": [
+      "backed_up_gbm:confidence_classifier_backup_20260730070603.joblib",
+      "gbm_trained:n=1045,pos=0.8641148325358852",
+      "backed_up_rf:root_cause_classifier_backup_20260730070611.joblib",
+      "rf_trained:cv=1.0,n=2458"
+    ]
+  },
+  "retrain_threshold": 25
+}

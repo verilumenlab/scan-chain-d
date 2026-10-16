@@ -1,0 +1,1855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Design Document — Enterprise Scan Chain Diagnosis Agent (SCDA)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #07090e;
+      --bg-secondary: #0d121d;
+      --bg-card: rgba(16, 23, 38, 0.75);
+      --bg-card-hover: rgba(22, 32, 53, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(56, 189, 248, 0.25);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --cyan: #38bdf8;
+      --cyan-glow: rgba(56, 189, 248, 0.35);
+      --indigo: #818cf8;
+      --emerald: #34d399;
+      --amber: #fbbf24;
+      --rose: #fb7185;
+      --purple: #c084fc;
+      
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-heading: 'Space Grotesk', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      background-image: 
+        radial-gradient(circle at 15% 10%, rgba(56, 189, 248, 0.07) 0%, transparent 40%),
+        radial-gradient(circle at 85% 25%, rgba(129, 140, 248, 0.07) 0%, transparent 40%),
+        radial-gradient(circle at 50% 70%, rgba(52, 211, 153, 0.05) 0%, transparent 50%),
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Top Sticky Navigation Bar */
+    header.top-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(7, 9, 14, 0.82);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 14px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+      font-size: 18px;
+    }
+
+    .brand-title {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #ffffff, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 6px;
+      background: rgba(16, 23, 38, 0.9);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .nav-tab {
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-tab:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-tab.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(99, 102, 241, 0.18));
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .action-btn {
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--border-accent);
+    }
+
+    /* Main Container */
+    main.container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 36px 24px 80px;
+    }
+
+    /* Hero Banner */
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+      position: relative;
+    }
+
+    .hero-pre {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: var(--cyan);
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      font-family: var(--font-heading);
+      font-size: 2.8rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      max-width: 820px;
+      margin: 0 auto;
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+    }
+
+    /* Metric Cards Grid */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin: 36px 0 48px;
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--border-accent);
+      background: var(--bg-card-hover);
+      box-shadow: 0 10px 24px -10px var(--cyan-glow);
+    }
+
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--card-color, var(--cyan)), transparent);
+      opacity: 0.8;
+    }
+
+    .metric-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .metric-value {
+      font-family: var(--font-heading);
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .metric-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Section Header */
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    /* Architecture Flow Interactive Visualizer */
+    .arch-wrapper {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      margin-bottom: 50px;
+      backdrop-filter: blur(12px);
+    }
+
+    .pipeline-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      align-items: center;
+      padding: 20px 0;
+    }
+
+    .pipeline-step {
+      flex: 1;
+      min-width: 170px;
+      max-width: 220px;
+      background: rgba(13, 18, 29, 0.95);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-align: center;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    .pipeline-step:hover, .pipeline-step.active {
+      border-color: var(--cyan);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px -6px rgba(56, 189, 248, 0.4);
+    }
+
+    .pipeline-step-num {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--cyan);
+      background: rgba(56, 189, 248, 0.12);
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .pipeline-step-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .pipeline-step-desc {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+
+    .flow-arrow {
+      color: var(--text-dim);
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Filter Bar for Requirements */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      background: var(--bg-card);
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .filter-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-pill:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+    }
+
+    .filter-pill.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    .search-input-box {
+      position: relative;
+      min-width: 260px;
+    }
+
+    .search-input-box input {
+      width: 100%;
+      background: rgba(13, 18, 29, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px 8px 34px;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input-box input:focus {
+      border-color: var(--cyan);
+    }
+
+    .search-input-box svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Requirements Cards List */
+    .req-list {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .req-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      backdrop-filter: blur(12px);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+
+    .req-card:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+      box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .req-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .req-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .req-badge {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-fr1 { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-fr2 { background: rgba(129, 140, 248, 0.15); color: #818cf8; border: 1px solid rgba(129, 140, 248, 0.3); }
+    .badge-fr3 { background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3); }
+    .badge-fr4 { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+    .badge-fr5 { background: rgba(251, 113, 133, 0.15); color: #fb7185; border: 1px solid rgba(251, 113, 133, 0.3); }
+    .badge-fr6 { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); }
+    .badge-fr7 { background: rgba(96, 165, 250, 0.15); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.3); }
+    .badge-fr8 { background: rgba(168, 85, 247, 0.15); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .badge-fr9 { background: rgba(249, 115, 22, 0.15); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.3); }
+    .badge-fr10 { background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid rgba(234, 179, 8, 0.3); }
+
+    .req-name {
+      font-family: var(--font-heading);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .req-meta-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .meta-pill {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+
+    .meta-pill.kpi {
+      background: rgba(56, 189, 248, 0.08);
+      border-color: rgba(56, 189, 248, 0.25);
+      color: var(--cyan);
+    }
+
+    .req-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .req-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .req-box {
+      background: rgba(13, 18, 29, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px;
+    }
+
+    .req-box-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .req-box-title svg {
+      width: 14px;
+      height: 14px;
+      color: var(--cyan);
+    }
+
+    .req-box p, .req-box li {
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+
+    .req-box ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+
+    .req-box li {
+      position: relative;
+      padding-left: 18px;
+      margin-bottom: 6px;
+    }
+
+    .req-box li::before {
+      content: '▹';
+      position: absolute;
+      left: 0;
+      color: var(--cyan);
+      font-size: 0.9rem;
+    }
+
+    .code-chip {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #7dd3fc;
+    }
+
+    .formula-box {
+      background: rgba(7, 9, 14, 0.75);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-left: 3px solid var(--cyan);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      margin: 10px 0;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #bae6fd;
+      overflow-x: auto;
+    }
+
+    .file-ref {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--cyan);
+      background: rgba(56, 189, 248, 0.08);
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      margin-right: 6px;
+      margin-top: 6px;
+    }
+
+    .file-ref:hover {
+      background: rgba(56, 189, 248, 0.16);
+      border-color: var(--cyan);
+    }
+
+    /* Traceability Matrix Table */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      overflow-x: auto;
+      backdrop-filter: blur(12px);
+    }
+
+    table.matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+
+    table.matrix-table th {
+      padding: 12px 16px;
+      border-bottom: 2px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    table.matrix-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: #cbd5e1;
+      vertical-align: middle;
+    }
+
+    table.matrix-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Interactive Simulator Card */
+    .simulator-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .sim-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      backdrop-filter: blur(12px);
+    }
+
+    .sim-title {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+
+    .sim-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+    }
+
+    .sim-control {
+      margin-bottom: 14px;
+    }
+
+    .sim-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .sim-slider {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .sim-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--cyan);
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--cyan);
+    }
+
+    .sim-result-box {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      background: rgba(7, 9, 14, 0.8);
+      border: 1px solid var(--border-subtle);
+      text-align: center;
+    }
+
+    .sim-result-val {
+      font-family: var(--font-heading);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+
+    .sim-result-sub {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* Footer */
+    footer.doc-footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 30px 24px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      margin-top: 60px;
+    }
+
+    footer.doc-footer a {
+      color: var(--cyan);
+      text-decoration: none;
+    }
+
+    /* Print Styles */
+    @media print {
+      header.top-header, .filter-bar, .nav-tabs, .header-actions, .simulator-grid {
+        display: none !important;
+      }
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      .req-card, .metric-card, .arch-wrapper, .table-container {
+        border: 1px solid #ccc !important;
+        background: #fff !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+      }
+      .req-name, .hero h1, .metric-value, .brand-title {
+        color: #000 !important;
+        -webkit-text-fill-color: #000 !important;
+      }
+      .req-box {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+      }
+      .req-box p, .req-box li {
+        color: #1e293b !important;
+      }
+      .formula-box {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+        border-color: #cbd5e1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Sticky Navigation Bar -->
+  <header class="top-header">
+    <a href="#" class="brand">
+      <div class="brand-icon">🛰️</div>
+      <div>
+        <div class="brand-title">Enterprise Scan Chain Diagnosis Agent</div>
+        <div style="font-size: 0.7rem; color: var(--text-dim); font-family: var(--font-mono);">SYSTEM DESIGN & ARCHITECTURE BRIEF</div>
+      </div>
+      <span class="brand-badge">SCD-FR-001 → 010</span>
+    </a>
+
+    <nav class="nav-tabs">
+      <button class="nav-tab active" onclick="switchSection('architecture')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Architecture
+      </button>
+      <button class="nav-tab" onclick="switchSection('requirements')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Requirements Briefs
+      </button>
+      <button class="nav-tab" onclick="switchSection('matrix')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Traceability Matrix
+      </button>
+      <button class="nav-tab" onclick="switchSection('playground')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        Interactive Math
+      </button>
+    </nav>
+
+    <div class="header-actions">
+      <button class="action-btn" onclick="window.print()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print / PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container">
+
+    <!-- Hero Section -->
+    <div class="hero">
+      <div class="hero-pre">⚡ Production ASIC / SoC Silicon Diagnosis Engine</div>
+      <h1>System Design Document</h1>
+      <p>A concise, production-grade architectural design brief covering all 10 core functional requirements (SCD-FR-001 through SCD-FR-010) of the Enterprise Scan Chain Diagnosis Agent.</p>
+    </div>
+
+    <!-- Quick Metrics Counter -->
+    <div class="metric-grid">
+      <div class="metric-card" style="--card-color: var(--cyan);">
+        <div class="metric-label">Requirements Implemented</div>
+        <div class="metric-value">10 / 10 <span style="font-size: 0.9rem; color: var(--emerald);">✓</span></div>
+        <div class="metric-sub">SCD-FR-001 through SCD-FR-010</div>
+      </div>
+      <div class="metric-card" style="--card-color: var(--indigo);">
+        <div class="metric-label">Cache Reload Speed</div>
+        <div class="metric-value">&lt; 0.20s</div>
+        <div class="metric-sub">Snappy Parquet warm disk cache</div>
+      </div>
+      <div class="metric-card" style="--card-color: var(--emerald);">
+        <div class="metric-label">Math Localization Parity</div>
+        <div class="metric-value">100.0%</div>
+        <div class="metric-sub">Dual-stage float rounding precision</div>
+      </div>
+      <div class="metric-card" style="--card-color: var(--amber);">
+        <div class="metric-label">Production Honesty</div>
+        <div class="metric-value">0% Floor</div>
+        <div class="metric-sub">Zero artificial score inflation</div>
+      </div>
+    </div>
+
+    <!-- SECTION 1: ARCHITECTURE & SYSTEM FLOW -->
+    <section id="section-architecture">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" color="var(--cyan)"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+            End-to-End System Architecture
+          </div>
+          <div class="section-desc">Vectorized multi-stage ingestion, topology correlation, ML root-cause classification, and PFA export flow.</div>
+        </div>
+      </div>
+
+      <div class="arch-wrapper">
+        <div class="pipeline-flow">
+          <div class="pipeline-step active" onclick="jumpToReq('SCD-FR-001')">
+            <div class="pipeline-step-num">FR-001</div>
+            <div class="pipeline-step-title">ATE Ingestion</div>
+            <div class="pipeline-step-desc">Tessent & compact inline logs + warm Parquet cache</div>
+          </div>
+          <div class="flow-arrow">➔</div>
+          <div class="pipeline-step" onclick="jumpToReq('SCD-FR-003')">
+            <div class="pipeline-step-num">FR-003</div>
+            <div class="pipeline-step-title">STIL Topology</div>
+            <div class="pipeline-step-desc">IEEE 1450 ScanStructures & EDT decompression map</div>
+          </div>
+          <div class="flow-arrow">➔</div>
+          <div class="pipeline-step" onclick="jumpToReq('SCD-FR-002')">
+            <div class="pipeline-step-num">FR-002</div>
+            <div class="pipeline-step-title">Cell Localization</div>
+            <div class="pipeline-step-desc">Vectorized shift cycle mapping with float parity</div>
+          </div>
+          <div class="flow-arrow">➔</div>
+          <div class="pipeline-step" onclick="jumpToReq('SCD-FR-004')">
+            <div class="pipeline-step-num">FR-004 & FR-005</div>
+            <div class="pipeline-step-title">Ranking & Physics</div>
+            <div class="pipeline-step-desc">Dense Pareto rank + Pearson IR/thermal/slack matrix</div>
+          </div>
+          <div class="flow-arrow">➔</div>
+          <div class="pipeline-step" onclick="jumpToReq('SCD-FR-006')">
+            <div class="pipeline-step-num">FR-006 & FR-007</div>
+            <div class="pipeline-step-title">Breaks & Modes</div>
+            <div class="pipeline-step-desc">Consensus first-mismatch + shift vs capture gate</div>
+          </div>
+          <div class="flow-arrow">➔</div>
+          <div class="pipeline-step" onclick="jumpToReq('SCD-FR-010')">
+            <div class="pipeline-step-num">FR-010 & FR-009</div>
+            <div class="pipeline-step-title">Confidence & XY</div>
+            <div class="pipeline-step-desc">PFA-calibrated trust score + physical silicon probe XY</div>
+          </div>
+        </div>
+
+        <div style="background: rgba(7, 9, 14, 0.6); border-radius: var(--radius-sm); padding: 18px; margin-top: 20px; font-size: 0.88rem; color: var(--text-muted); border: 1px solid var(--border-subtle);">
+          <strong style="color: var(--text-main);">Architectural Design Principles:</strong>
+          <ul style="margin-top: 8px; margin-left: 18px; line-height: 1.7;">
+            <li><strong>Decoupled Diagnostics Engine:</strong> Core algorithms in <code class="code-chip">src/</code> execute independently of any UI layer, callable via CLI (<code class="code-chip">export_outputs.py</code>), Streamlit, or FastAPI adapters.</li>
+            <li><strong>Vectorized Math Engine:</strong> Avoids Python row-iteration bottlenecks by using vectorized NumPy/Pandas array operations, delivering ~39x speedup over standard DataFrame applies.</li>
+            <li><strong>Zero Artificial Confidence Inflation:</strong> Adheres strictly to production honesty. Suspected breaks are flagged as <code class="code-chip">CERTAIN</code> only when soft agreement is $\ge 70\%$ across $\ge 2$ patterns. Low confidence is reported truthfully without artificial floors.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: REQUIREMENTS BRIEFS (FR-001 to FR-010) -->
+    <section id="section-requirements">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" color="var(--indigo)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Functional Requirements Design Briefs
+          </div>
+          <div class="section-desc">Design specifications, mathematical models, schemas, and production gates for each requirement.</div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="filter-pills">
+          <button class="filter-pill active" onclick="filterCards('all')">All (10)</button>
+          <button class="filter-pill" onclick="filterCards('ingestion')">Ingestion & Parser</button>
+          <button class="filter-pill" onclick="filterCards('dft')">DFT & Topology</button>
+          <button class="filter-pill" onclick="filterCards('ml')">ML & Statistics</button>
+          <button class="filter-pill" onclick="filterCards('breaks')">Breaks & Timing</button>
+          <button class="filter-pill" onclick="filterCards('pfa')">PFA & Confidence</button>
+        </div>
+        <div class="search-input-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="reqSearchInput" placeholder="Search requirements, math, formulas..." oninput="searchRequirements()">
+        </div>
+      </div>
+
+      <div class="req-list" id="requirementsList">
+
+        <!-- SCD-FR-001 -->
+        <article class="req-card" id="SCD-FR-001" data-category="ingestion">
+          <div class="req-header">
+            <div class="req-title-wrap">
+              <span class="req-badge badge-fr1">SCD-FR-001</span>
+              <div>
+                <h2 class="req-name">Failing Scan Chain Identification Agent</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">High-Throughput ATE Log Ingestion & Failing Chain Inventory</div>
+              </div>
+            </div>
+            <div class="req-meta-pills">
+              <span class="meta-pill kpi">KPI: failing_chains</span>
+              <span class="meta-pill">Parquet Warm Cache</span>
+              <span class="meta-pill">Multiprocessing</span>
+            </div>
+          </div>
+          <div class="req-grid">
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                Core Objective & Ingestion Architecture
+              </div>
+              <p>Ingests massive multi-gigabyte production ATE pattern failure logs across Tessent and compact inline multi-channel formats. Expands compressed cycle representations and catalogs every failing chain.</p>
+              <ul style="margin-top: 10px;">
+                <li><strong>Dual Format Parser:</strong> Native support for traditional Tessent logs and compact inline logs with <code class="code-chip">PATTERN_METRICS</code> blocks.</li>
+                <li><strong>Run-Length Cycle Expansion:</strong> Automatically expands <code class="code-chip">X@{n}</code> compressed non-failing/masked cycles into absolute physical shift cycles.</li>
+                <li><strong>GIL Bypass:</strong> Utilizes <code class="code-chip">ProcessPoolExecutor</code> to parse 90+ files concurrently across all CPU cores.</li>
+              </ul>
+            </div>
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Algorithms, Cache & Deliverables
+              </div>
+              <div class="formula-box">
+                Cache_Key = SHA-1(FilePath + MTime + FileSizeBytes)<br>
+                Serialized to: data/cache/logs_&lt;hash&gt;.parquet
+              </div>
+              <ul>
+                <li><strong>Warm Parquet Cache:</strong> Reduces subsequent reload times from 10+ minutes to <strong>&lt; 0.2 seconds</strong>.</li>
+                <li><strong>Deliverable:</strong> <code class="code-chip">output/SCD-FR-001_failing_scan_chains.json</code></li>
+                <li><strong>Source Modules:</strong> 
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/parser.py">src/parser.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/disk_cache.py">src/disk_cache.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/specs/SCD-FR-001_failing_scan_chains.md">specs/FR-001.md</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- SCD-FR-002 -->
+        <article class="req-card" id="SCD-FR-002" data-category="dft">
+          <div class="req-header">
+            <div class="req-title-wrap">
+              <span class="req-badge badge-fr2">SCD-FR-002</span>
+              <div>
+                <h2 class="req-name">Suspected Failing Cell Localization Agent</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Vectorized Flop-to-Cell Mapping with Dual-Stage Float Parity</div>
+              </div>
+            </div>
+            <div class="req-meta-pills">
+              <span class="meta-pill kpi">KPI: suspected_cells</span>
+              <span class="meta-pill">Vectorized Math</span>
+              <span class="meta-pill">Float Parity 100%</span>
+            </div>
+          </div>
+          <div class="req-grid">
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                Objective & Vectorized Localization
+              </div>
+              <p>Translates raw tester cycle failures into exact physical scan cell instances within the silicon hierarchy, resolving fractional clocking ambiguities and attaching ML root causes.</p>
+              <ul style="margin-top: 10px;">
+                <li><strong>Vectorized Math Engine:</strong> Replaces row-by-row iteration with native Pandas array operations, accelerating localization by ~39x.</li>
+                <li><strong>Dual-Stage Float Rounding:</strong> Neutralizes IEEE-754 floating-point inaccuracies using <code class="code-chip">round(round(x, 10), 3)</code>, achieving 100% parity with golden diagnostics.</li>
+              </ul>
+            </div>
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Mapping Formulas & Deliverables
+              </div>
+              <div class="formula-box">
+                bit_position = shift_cycle - cycle_offset<br>
+                offset_from_scan_in = chain_length - 1 - bit_position
+              </div>
+              <ul>
+                <li><strong>Defect Annotation:</strong> Attaches Random Forest predicted root cause (Stuck-At, Bridge, Timing Setup/Hold) and calibrated confidence score.</li>
+                <li><strong>Deliverable:</strong> <code class="code-chip">output/SCD-FR-002_suspected_failing_cells.json</code></li>
+                <li><strong>Source Modules:</strong> 
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/locate_cells.py">src/locate_cells.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/ml_pipeline.py">src/ml_pipeline.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/specs/SCD-FR-002_suspected_failing_cells.md">specs/FR-002.md</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- SCD-FR-003 -->
+        <article class="req-card" id="SCD-FR-003" data-category="dft">
+          <div class="req-header">
+            <div class="req-title-wrap">
+              <span class="req-badge badge-fr3">SCD-FR-003</span>
+              <div>
+                <h2 class="req-name">Scan Chain Topology & Structural Analysis Agent</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">STIL ScanStructures, EDT Channels & Connectivity Modeling</div>
+              </div>
+            </div>
+            <div class="req-meta-pills">
+              <span class="meta-pill kpi">KPI: topology_chains</span>
+              <span class="meta-pill">IEEE 1450 STIL</span>
+              <span class="meta-pill">Interactive SVG</span>
+            </div>
+          </div>
+          <div class="req-grid">
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                Objective & Structural Parsing
+              </div>
+              <p>Reconstructs the full DFT scan topology from IEEE 1450 STIL design files and hardware topology markdown specifications to establish physical and logical connectivity.</p>
+              <ul style="margin-top: 10px;">
+                <li><strong>ScanStructures Parser:</strong> Extracts chain IDs, chain length, ScanIn/ScanOut pins, clock domains, and ordered cell instances.</li>
+                <li><strong>EDT Channel Resolution:</strong> Automatically resolves naming mismatches between tester compression channels and internal hierarchical chains (e.g. channel 14 $\leftrightarrow$ chain <code class="code-chip">c13</code>).</li>
+                <li><strong>Chain Balance Metrics:</strong> Evaluates chain lengths to identify shift test bottleneck chains.</li>
+              </ul>
+            </div>
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Visualizer & Deliverables
+              </div>
+              <div class="formula-box">
+                Connectivity: ScanIn ➔ Cell_0 ➔ ... ➔ Cell_N-1 ➔ ScanOut<br>
+                Clocks: Shift_Clk, Capture_Clk | SE: Scan_Enable
+              </div>
+              <ul>
+                <li><strong>Interactive Schematic:</strong> Generates pure SVG/Plotly interactive schematics supporting in-diagram chain selection and zoom.</li>
+                <li><strong>Deliverable:</strong> <code class="code-chip">output/SCD-FR-003_scan_topology.json</code></li>
+                <li><strong>Source Modules:</strong> 
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/stil_parser.py">src/stil_parser.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/topology_analysis.py">src/topology_analysis.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/specs/SCD-FR-003_scan_topology.md">specs/FR-003.md</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- SCD-FR-004 -->
+        <article class="req-card" id="SCD-FR-004" data-category="ml">
+          <div class="req-header">
+            <div class="req-title-wrap">
+              <span class="req-badge badge-fr4">SCD-FR-004</span>
+              <div>
+                <h2 class="req-name">Scan Chain Failure Ranking & Pareto Analysis Agent</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Deterministic Dense Ranking with 80/20 Cumulative Pareto Cutoff</div>
+              </div>
+            </div>
+            <div class="req-meta-pills">
+              <span class="meta-pill kpi">KPI: ranked_chains</span>
+              <span class="meta-pill">Pareto 80/20</span>
+              <span class="meta-pill">Dense Rank</span>
+            </div>
+          </div>
+          <div class="req-grid">
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                Objective & Prioritization
+              </div>
+              <p>Ranks failing scan chains by failure frequency and unique failing pattern counts to isolate the "vital few" chains causing the vast majority of yield loss.</p>
+              <ul style="margin-top: 10px;">
+                <li><strong>Dense Ranking:</strong> Native <code class="code-chip">Series.rank(method="dense", ascending=False)</code> ensures deterministic, monotonic rank assignment without gaps.</li>
+                <li><strong>Pareto Frontier:</strong> Calculates cumulative failure percentages to immediately identify the minimal subset of chains responsible for 80% of silicon fails.</li>
+              </ul>
+            </div>
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Pareto Math & Deliverables
+              </div>
+              <div class="formula-box">
+                Pareto_Pct(k) = ( ∑_{i=1..k} Fails_i / Total_Fails ) × 100%<br>
+                Vital_Few = { c | Pareto_Pct(c) ≤ 80.0% }
+              </div>
+              <ul>
+                <li><strong>Interactive Pareto Chart:</strong> Powers dashboard Pareto dual-axis bar and cumulative percentage line charts.</li>
+                <li><strong>Deliverable:</strong> <code class="code-chip">output/SCD-FR-004_chain_failure_ranking.json</code></li>
+                <li><strong>Source Modules:</strong> 
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/chain_ranking.py">src/chain_ranking.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/specs/SCD-FR-004_chain_failure_ranking.md">specs/FR-004.md</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- SCD-FR-005 -->
+        <article class="req-card" id="SCD-FR-005" data-category="ml">
+          <div class="req-header">
+            <div class="req-title-wrap">
+              <span class="req-badge badge-fr5">SCD-FR-005</span>
+              <div>
+                <h2 class="req-name">Physical & Timing Variable Correlation Analysis Agent</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Pearson Multivariate Correlation & AI Severity Profiling</div>
+              </div>
+            </div>
+            <div class="req-meta-pills">
+              <span class="meta-pill kpi">KPI: failure_correlations</span>
+              <span class="meta-pill">Pearson Matrix</span>
+              <span class="meta-pill">AI Severity</span>
+            </div>
+          </div>
+          <div class="req-grid">
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                Objective & Physical Parameters
+              </div>
+              <p>Uncovers the physical drivers behind scan chain failures by correlating failure density against electrical and spatial parameters across the entire wafer population.</p>
+              <ul style="margin-top: 10px;">
+                <li><strong>Physical Variables Analyzed:</strong> Dynamic IR drop ($\Delta V$), operating junction temperature ($^\circ\text{C}$), setup/hold timing slack, and wafer radial positions $(X_{die}, Y_{die})$.</li>
+                <li><strong>Categorical Profiles:</strong> Identifies if failures concentrate within specific functional regions (e.g. Core Logic vs. SerDes PHY vs. Memory Periphery).</li>
+              </ul>
+            </div>
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Pearson Math & Severity
+              </div>
+              <div class="formula-box">
+                r = Cov(Fails, Feature) / ( σ_fails · σ_feature )<br>
+                Severity = High if |r| ≥ 0.70 else Medium if |r| ≥ 0.40 else Low
+              </div>
+              <ul>
+                <li><strong>Population Deviation:</strong> Quantifies how anomalous each chain's operating envelope is relative to the healthy die distribution.</li>
+                <li><strong>Deliverable:</strong> <code class="code-chip">output/SCD-FR-005_failure_correlation.json</code></li>
+                <li><strong>Source Modules:</strong> 
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/correlation_analysis.py">src/correlation_analysis.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/specs/SCD-FR-005_failure_correlation.md">specs/FR-005.md</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- SCD-FR-006 -->
+        <article class="req-card" id="SCD-FR-006" data-category="breaks">
+          <div class="req-header">
+            <div class="req-title-wrap">
+              <span class="req-badge badge-fr6">SCD-FR-006</span>
+              <div>
+                <h2 class="req-name">Exact Scan Chain Break Localization Agent</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Consensus First-Mismatch Scanner with Production CERTAIN Gating</div>
+              </div>
+            </div>
+            <div class="req-meta-pills">
+              <span class="meta-pill kpi">KPI: chain_breaks</span>
+              <span class="meta-pill">Trailing-X Care Bits</span>
+              <span class="meta-pill">Zero Fake Floors</span>
+            </div>
+          </div>
+          <div class="req-grid">
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                Objective & Hard Open Detection
+              </div>
+              <p>Pinpoints the exact flip-flop where a scan chain shift path open or stuck-at break prevents data shift, using consensus bitstream mismatch analysis.</p>
+              <ul style="margin-top: 10px;">
+                <li><strong>Consensus Mismatch:</strong> Detects the first divergence bit between expected and actual test vectors across patterns, preventing single-pattern noise skew.</li>
+                <li><strong>Trailing-X Care-Bit Extraction:</strong> Dynamically identifies the true active scan-out boundary by filtering trailing non-care masking bits (<code class="code-chip">X</code>).</li>
+              </ul>
+            </div>
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Honesty Gates & Formula
+              </div>
+              <div class="formula-box">
+                SoftAgreement = Fraction(Patterns with mismatch in [bit-1, bit+1])<br>
+                Status = CERTAIN if (SoftAgreement ≥ 70% and Patterns ≥ 2) else UNCERTAIN
+              </div>
+              <ul>
+                <li><strong>Production Honesty:</strong> When evidence is insufficient, marks status as <code class="code-chip">UNCERTAIN</code> while still exposing candidate bits for manual PFA review.</li>
+                <li><strong>Deliverable:</strong> <code class="code-chip">output/SCD-FR-006_scan_chain_breaks.json</code></li>
+                <li><strong>Source Modules:</strong> 
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/chain_breaks.py">src/chain_breaks.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/specs/SCD-FR-006_scan_chain_breaks.md">specs/FR-006.md</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- SCD-FR-007 -->
+        <article class="req-card" id="SCD-FR-007" data-category="breaks">
+          <div class="req-header">
+            <div class="req-title-wrap">
+              <span class="req-badge badge-fr7">SCD-FR-007</span>
+              <div>
+                <h2 class="req-name">Shift vs. Capture Defect Classification Agent</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Hierarchical Root-Cause Decision Cascade & Anomaly Scoring</div>
+              </div>
+            </div>
+            <div class="req-meta-pills">
+              <span class="meta-pill kpi">KPI: shift_capture</span>
+              <span class="meta-pill">IsolationForest</span>
+              <span class="meta-pill">Timing Slack Signs</span>
+            </div>
+          </div>
+          <div class="req-grid">
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                Objective & Classification Cascade
+              </div>
+              <p>Disambiguates serial scan-shift transport defects (chain integrity/open) from parallel at-speed functional capture defects (logic paths, voltage droop, timing slacks).</p>
+              <ul style="margin-top: 10px;">
+                <li><strong>Shift Path Defect:</strong> Triggered when a validated FR-006 break or systematic bitstream shift failure signature is present.</li>
+                <li><strong>Capture Timing Defect:</strong> Triggered when the shift path is fully functional, but negative setup slack ($t_{setup} < 0$) or hold slack ($t_{hold} < 0$) is observed.</li>
+                <li><strong>Capture Logic / Anomaly:</strong> Combinational point defects isolated via <code class="code-chip">IsolationForest</code> anomaly scoring.</li>
+              </ul>
+            </div>
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Decision Logic & Deliverables
+              </div>
+              <div class="formula-box">
+                IF has_valid_break(chain) ➔ SHIFT_DEFECT<br>
+                ELSE IF setup_slack &lt; 0 or hold_slack &lt; 0 ➔ CAPTURE_TIMING<br>
+                ELSE IF is_anomaly ➔ CAPTURE_ANOMALY ELSE CAPTURE_LOGIC
+              </div>
+              <ul>
+                <li><strong>PFA Direction:</strong> Directs lab engineers whether to inspect scan chain clock/data lines or combinational gate cones.</li>
+                <li><strong>Deliverable:</strong> <code class="code-chip">output/SCD-FR-007_shift_capture_diagnosis.json</code></li>
+                <li><strong>Source Modules:</strong> 
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/export_outputs.py">src/export_outputs.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/ml_pipeline.py">src/ml_pipeline.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/specs/SCD-FR-007_shift_capture_diagnosis.md">specs/FR-007.md</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- SCD-FR-008 -->
+        <article class="req-card" id="SCD-FR-008" data-category="pfa">
+          <div class="req-header">
+            <div class="req-title-wrap">
+              <span class="req-badge badge-fr8">SCD-FR-008</span>
+              <div>
+                <h2 class="req-name">Comprehensive Scan Diagnosis Report Generator</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Standalone Self-Contained Print-Ready HTML Report Engine</div>
+              </div>
+            </div>
+            <div class="req-meta-pills">
+              <span class="meta-pill kpi">KPI: diagnosis_reports</span>
+              <span class="meta-pill">Pure SVG Charts</span>
+              <span class="meta-pill">Zero External CDN</span>
+            </div>
+          </div>
+          <div class="req-grid">
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                Objective & Standalone Architecture
+              </div>
+              <p>Assembles an audit-ready, shareable HTML report consolidating findings across all requirements into a single file with zero external JavaScript or CSS dependencies.</p>
+              <ul style="margin-top: 10px;">
+                <li><strong>Full Diagnostic Scope:</strong> Incorporates findings from FR-001 through FR-007, FR-009, and FR-010.</li>
+                <li><strong>No Row Truncation:</strong> Presents full suspect cell tables with client-side pagination rather than hiding suspect data behind artificial display caps.</li>
+                <li><strong>Offline Portability:</strong> Opens instantly inside secure foundry intranets with no internet access.</li>
+              </ul>
+            </div>
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Sections & Deliverable
+              </div>
+              <div class="formula-box">
+                Bundle = build_diagnosis_bundle(df, chain_map, models)<br>
+                HTML = render_report_sections(Bundle, inline_svg=True)
+              </div>
+              <ul>
+                <li><strong>Embedded Visualizations:</strong> Generates lightweight SVG donut charts, Pareto bars, and correlation matrix tables inline.</li>
+                <li><strong>Deliverable:</strong> <code class="code-chip">output/SCD-FR-008_scan_diagnosis_report.html</code></li>
+                <li><strong>Source Modules:</strong> 
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/report_generator.py">src/report_generator.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/diagnosis_context.py">src/diagnosis_context.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/specs/SCD-FR-008_scan_diagnosis_report.md">specs/FR-008.md</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- SCD-FR-009 -->
+        <article class="req-card" id="SCD-FR-009" data-category="pfa">
+          <div class="req-header">
+            <div class="req-title-wrap">
+              <span class="req-badge badge-fr9">SCD-FR-009</span>
+              <div>
+                <h2 class="req-name">Silicon Physical XY Debug Coordinate Localization Agent</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Die-Local (&mu;m) & Wafer (mm) Probing Coordinate Transformation</div>
+              </div>
+            </div>
+            <div class="req-meta-pills">
+              <span class="meta-pill kpi">KPI: debug_locations</span>
+              <span class="meta-pill">PFA Lab Ready</span>
+              <span class="meta-pill">FIB / SEM Coordinates</span>
+            </div>
+          </div>
+          <div class="req-grid">
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                Objective & Physical Localization
+              </div>
+              <p>Bridges the gap between logical register design hierarchies and physical silicon geometry, providing micrometer-accurate coordinates for FIB de-processing and laser voltage probing.</p>
+              <ul style="margin-top: 10px;">
+                <li><strong>Dual Coordinate Systems:</strong> Computes die-local $(x, y)$ in micrometers ($\mu\text{m}$) and global wafer stage $(X, Y)$ in millimeters ($\text{mm}$).</li>
+                <li><strong>Serpentine Scan Modeling:</strong> Accurately models physical scan-path routing and cell placement when full DEF layout databases are unavailable.</li>
+              </ul>
+            </div>
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Coordinate Math & Deliverables
+              </div>
+              <div class="formula-box">
+                X_wafer = WaferCenter_X + (die_x · DiePitch_X) + (x_µm / 1000)<br>
+                Y_wafer = WaferCenter_Y + (die_y · DiePitch_Y) + (y_µm / 1000)
+              </div>
+              <ul>
+                <li><strong>Inspection Queue Priority:</strong> Weights observation count, diagnostic confidence, and anomaly status to rank lab targets.</li>
+                <li><strong>Deliverables:</strong> <code class="code-chip">output/SCD-FR-009_debug_locations.json</code> & <code class="code-chip">.csv</code></li>
+                <li><strong>Source Modules:</strong> 
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/debug_locations.py">src/debug_locations.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/specs/SCD-FR-009_debug_locations.md">specs/FR-009.md</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- SCD-FR-010 -->
+        <article class="req-card" id="SCD-FR-010" data-category="pfa">
+          <div class="req-header">
+            <div class="req-title-wrap">
+              <span class="req-badge badge-fr10">SCD-FR-010</span>
+              <div>
+                <h2 class="req-name">Multi-Evidence Diagnosis Confidence & PFA Scoring Agent</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Calibrated Evidence Scoring with Fail-Weighted Top-1 KPI Aggregate</div>
+              </div>
+            </div>
+            <div class="req-meta-pills">
+              <span class="meta-pill kpi">KPI: avg_confidence</span>
+              <span class="meta-pill">PFA Feedback Retrain</span>
+              <span class="meta-pill">Zero Artificial Floor</span>
+            </div>
+          </div>
+          <div class="req-grid">
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                Objective & Multi-Evidence Math
+              </div>
+              <p>Replaces arbitrary diagnostic guesses with an empirically calibrated confidence score combining 4 observational evidence dimensions with a PFA-trained logistic model.</p>
+              <ul style="margin-top: 10px;">
+                <li><strong>Multi-Factor Observational Evidence:</strong>
+                  $$S_{evidence} = 0.40 \cdot \text{Dom}_{rel} + 0.25 \cdot \text{Corrob}_{pat} + 0.20 \cdot \text{Share}_{obs} + 0.15 \cdot \text{Consist}_{type}$$
+                </li>
+                <li><strong>Zero-Dependency ML PFA Blending:</strong>
+                  $$\text{Confidence} = 0.55 \cdot S_{evidence} + 0.45 \cdot P_{ML}(\text{True Defect})$$
+                </li>
+              </ul>
+            </div>
+            <div class="req-box">
+              <div class="req-box-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                System Trust KPI & Model Lifecycle
+              </div>
+              <div class="formula-box">
+                Aggregate_Trust = ∑(Fails_c · max_cell(Conf_cell)) / ∑(Fails_c)<br>
+                Auto-Retrain Threshold = 25 PFA Engineer Feedback Labels
+              </div>
+              <ul>
+                <li><strong>Fail-Weighted Top-1 Metric:</strong> Avoids dilute long tails of weak candidates by aggregating only the highest-confidence suspect per failing chain.</li>
+                <li><strong>Closed-Loop Feedback:</strong> Retrains the PFA classifier automatically when $\ge 25$ lab review labels accumulate in <code class="code-chip">review_queue.py</code>.</li>
+                <li><strong>Source Modules:</strong> 
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/confidence_score.py">src/confidence_score.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/model_lifecycle.py">src/model_lifecycle.py</a>
+                  <a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/specs/SCD-FR-010_diagnosis_confidence.md">specs/FR-010.md</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- SECTION 3: TRACEABILITY MATRIX -->
+    <section id="section-matrix" style="display: none;">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" color="var(--emerald)"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+            Requirements Traceability Matrix
+          </div>
+          <div class="section-desc">Comprehensive cross-reference of functional requirements, modules, algorithms, and output artifacts.</div>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Requirement Agent</th>
+              <th>Primary Source Module</th>
+              <th>Core Mathematical / Architectural Design</th>
+              <th>Target Deliverable Artifact</th>
+              <th>Headline KPI</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="req-badge badge-fr1">FR-001</span></td>
+              <td><strong>Failing Scan Chain Identification</strong></td>
+              <td><a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/parser.py">src/parser.py</a></td>
+              <td>Multi-process ATE ingestion + Snappy Parquet warm disk cache + X@{n} expansion</td>
+              <td><code class="code-chip">SCD-FR-001_failing_scan_chains.json</code></td>
+              <td><code class="code-chip">failing_chains</code></td>
+            </tr>
+            <tr>
+              <td><span class="req-badge badge-fr2">FR-002</span></td>
+              <td><strong>Suspected Cell Localization</strong></td>
+              <td><a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/locate_cells.py">src/locate_cells.py</a></td>
+              <td>Vectorized shift cycle mapping + dual float rounding <code class="code-chip">round(round(x, 10), 3)</code></td>
+              <td><code class="code-chip">SCD-FR-002_suspected_failing_cells.json</code></td>
+              <td><code class="code-chip">suspected_cells</code></td>
+            </tr>
+            <tr>
+              <td><span class="req-badge badge-fr3">FR-003</span></td>
+              <td><strong>Scan Topology Analysis</strong></td>
+              <td><a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/stil_parser.py">src/stil_parser.py</a></td>
+              <td>IEEE 1450 STIL ScanStructures + EDT channel mapping + SVG schematic</td>
+              <td><code class="code-chip">SCD-FR-003_scan_topology.json</code></td>
+              <td><code class="code-chip">topology_chains</code></td>
+            </tr>
+            <tr>
+              <td><span class="req-badge badge-fr4">FR-004</span></td>
+              <td><strong>Chain Failure Ranking</strong></td>
+              <td><a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/chain_ranking.py">src/chain_ranking.py</a></td>
+              <td>Native Pandas dense rank + 80/20 cumulative Pareto percentage</td>
+              <td><code class="code-chip">SCD-FR-004_chain_failure_ranking.json</code></td>
+              <td><code class="code-chip">ranked_chains</code></td>
+            </tr>
+            <tr>
+              <td><span class="req-badge badge-fr5">FR-005</span></td>
+              <td><strong>Failure Correlation Analysis</strong></td>
+              <td><a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/correlation_analysis.py">src/correlation_analysis.py</a></td>
+              <td>Multivariate Pearson correlation matrix + AI severity binning (High/Med/Low)</td>
+              <td><code class="code-chip">SCD-FR-005_failure_correlation.json</code></td>
+              <td><code class="code-chip">failure_correlations</code></td>
+            </tr>
+            <tr>
+              <td><span class="req-badge badge-fr6">FR-006</span></td>
+              <td><strong>Chain Break Localization</strong></td>
+              <td><a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/chain_breaks.py">src/chain_breaks.py</a></td>
+              <td>Consensus first mismatch + trailing-X care bit gate (Soft Agreement ≥ 70%)</td>
+              <td><code class="code-chip">SCD-FR-006_scan_chain_breaks.json</code></td>
+              <td><code class="code-chip">chain_breaks</code></td>
+            </tr>
+            <tr>
+              <td><span class="req-badge badge-fr7">FR-007</span></td>
+              <td><strong>Shift vs Capture Classification</strong></td>
+              <td><a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/export_outputs.py">src/export_outputs.py</a></td>
+              <td>Hierarchical cascade: FR-006 break evidence + slack signs + IsolationForest</td>
+              <td><code class="code-chip">SCD-FR-007_shift_capture_diagnosis.json</code></td>
+              <td><code class="code-chip">shift_capture</code></td>
+            </tr>
+            <tr>
+              <td><span class="req-badge badge-fr8">FR-008</span></td>
+              <td><strong>Scan Diagnosis HTML Report</strong></td>
+              <td><a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/report_generator.py">src/report_generator.py</a></td>
+              <td>Standalone print-ready single-file HTML report with embedded SVG visualizers</td>
+              <td><code class="code-chip">SCD-FR-008_scan_diagnosis_report.html</code></td>
+              <td><code class="code-chip">diagnosis_reports</code></td>
+            </tr>
+            <tr>
+              <td><span class="req-badge badge-fr9">FR-009</span></td>
+              <td><strong>Debug XY Locations</strong></td>
+              <td><a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/debug_locations.py">src/debug_locations.py</a></td>
+              <td>Die (&mu;m) and Wafer (mm) coordinate transformations + PFA priority scoring</td>
+              <td><code class="code-chip">SCD-FR-009_debug_locations.json / .csv</code></td>
+              <td><code class="code-chip">debug_locations</code></td>
+            </tr>
+            <tr>
+              <td><span class="req-badge badge-fr10">FR-010</span></td>
+              <td><strong>Diagnosis Confidence Scoring</strong></td>
+              <td><a class="file-ref" href="file:///d:/scan%20chain%20dianosis%20agent/src/confidence_score.py">src/confidence_score.py</a></td>
+              <td>4-factor evidence scoring + PFA logistic regression + fail-weighted top-1 KPI</td>
+              <td>Integrated in FR-002, FR-009 & Dashboard KPI</td>
+              <td><code class="code-chip">avg_confidence</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 4: INTERACTIVE MATH PLAYGROUND -->
+    <section id="section-playground" style="display: none;">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" color="var(--purple)"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            Interactive Algorithm & Math Playground
+          </div>
+          <div class="section-desc">Live interactive evaluation of core mathematical models used throughout the diagnosis engine.</div>
+        </div>
+      </div>
+
+      <div class="simulator-grid">
+        <!-- Simulator 1: Confidence Scoring -->
+        <div class="sim-card">
+          <div class="sim-title">FR-010 Multi-Evidence Confidence Model</div>
+          <div class="sim-desc">Calibrate observational evidence and ML PFA probability to compute composite cell confidence.</div>
+          
+          <div class="sim-control">
+            <div class="sim-label"><span>Relative Dominance (Weight: 0.40)</span><span id="val-dom">0.85</span></div>
+            <input type="range" class="sim-slider" id="slider-dom" min="0" max="1" step="0.05" value="0.85" oninput="updateConfidenceSim()">
+          </div>
+          <div class="sim-control">
+            <div class="sim-label"><span>Pattern Corroboration (Weight: 0.25)</span><span id="val-corrob">0.70</span></div>
+            <input type="range" class="sim-slider" id="slider-corrob" min="0" max="1" step="0.05" value="0.70" oninput="updateConfidenceSim()">
+          </div>
+          <div class="sim-control">
+            <div class="sim-label"><span>Observation Share (Weight: 0.20)</span><span id="val-share">0.60</span></div>
+            <input type="range" class="sim-slider" id="slider-share" min="0" max="1" step="0.05" value="0.60" oninput="updateConfidenceSim()">
+          </div>
+          <div class="sim-control">
+            <div class="sim-label"><span>Fail-Type Consistency (Weight: 0.15)</span><span id="val-consist">0.90</span></div>
+            <input type="range" class="sim-slider" id="slider-consist" min="0" max="1" step="0.05" value="0.90" oninput="updateConfidenceSim()">
+          </div>
+          <div class="sim-control">
+            <div class="sim-label"><span>ML PFA Defect Probability (Weight: 0.45)</span><span id="val-ml">0.82</span></div>
+            <input type="range" class="sim-slider" id="slider-ml" min="0" max="1" step="0.05" value="0.82" oninput="updateConfidenceSim()">
+          </div>
+
+          <div class="sim-result-box">
+            <div class="sim-result-val" id="result-conf">79.5%</div>
+            <div class="sim-result-sub" id="result-conf-trust">Trust Classification: HIGH CONFIDENCE</div>
+          </div>
+        </div>
+
+        <!-- Simulator 2: Chain Break Certainty Gate -->
+        <div class="sim-card">
+          <div class="sim-title">FR-006 Chain Break Certainty Evaluator</div>
+          <div class="sim-desc">Test the production honesty gating rule without artificial floors.</div>
+          
+          <div class="sim-control">
+            <div class="sim-label"><span>Soft Agreement Percentage</span><span id="val-soft">75%</span></div>
+            <input type="range" class="sim-slider" id="slider-soft" min="10" max="100" step="5" value="75" oninput="updateBreakSim()">
+          </div>
+          <div class="sim-control">
+            <div class="sim-label"><span>Corroborating Patterns Count</span><span id="val-pats">3</span></div>
+            <input type="range" class="sim-slider" id="slider-pats" min="1" max="15" step="1" value="3" oninput="updateBreakSim()">
+          </div>
+
+          <div class="sim-result-box" style="margin-top: 50px;">
+            <div class="sim-result-val" id="result-break-status" style="color: var(--emerald);">CERTAIN</div>
+            <div class="sim-result-sub" id="result-break-reason">Gate passed: Soft agreement ≥ 70% with ≥ 2 patterns.</div>
+          </div>
+        </div>
+
+        <!-- Simulator 3: Vectorized Shift Cycle Offset -->
+        <div class="sim-card">
+          <div class="sim-title">FR-002 Shift Cycle to Cell Offset</div>
+          <div class="sim-desc">Map tester shift cycle to physical chain bit position and Scan-In offset.</div>
+          
+          <div class="sim-control">
+            <div class="sim-label"><span>Scan Chain Length (cells)</span><span id="val-chain-len">1200</span></div>
+            <input type="range" class="sim-slider" id="slider-chain-len" min="100" max="5000" step="50" value="1200" oninput="updateOffsetSim()">
+          </div>
+          <div class="sim-control">
+            <div class="sim-label"><span>Failing Shift Cycle</span><span id="val-shift-cycle">450</span></div>
+            <input type="range" class="sim-slider" id="slider-shift-cycle" min="0" max="1200" step="10" value="450" oninput="updateOffsetSim()">
+          </div>
+
+          <div class="sim-result-box" style="margin-top: 50px;">
+            <div class="sim-result-val" id="result-offset">Cell #749</div>
+            <div class="sim-result-sub" id="result-offset-sub">Offset from Scan-In pin: 749 cells (Bit: 450)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="doc-footer">
+    <div><strong>Enterprise Scan Chain Diagnosis Agent (SCDA)</strong> — System Design Document v1.0</div>
+    <div style="margin-top: 6px;">Based on <a href="file:///d:/scan%20chain%20dianosis%20agent/specs">specs/SCD-FR-001 through FR-010</a> | Standardized for High-Volume Silicon Diagnosis</div>
+    <div style="margin-top: 8px; color: var(--text-dim); font-size: 0.75rem;">Engineered for DFT & PFA Teams | Zero Artificial Confidence Floors | 100% Float Parity</div>
+  </footer>
+
+  <script>
+    // Tab Switching
+    function switchSection(sectionId) {
+      const tabs = document.querySelectorAll('.nav-tab');
+      tabs.forEach(tab => tab.classList.remove('active'));
+
+      const sections = ['architecture', 'requirements', 'matrix', 'playground'];
+      sections.forEach(id => {
+        const el = document.getElementById(`section-${id}`);
+        if (el) el.style.display = (id === sectionId) ? 'block' : 'none';
+      });
+
+      // Highlight tab
+      const currentTab = Array.from(tabs).find(t => t.textContent.toLowerCase().includes(sectionId.slice(0, 4)));
+      if (currentTab) currentTab.classList.add('active');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Jump directly to specific requirement card
+    function jumpToReq(reqId) {
+      switchSection('requirements');
+      setTimeout(() => {
+        const el = document.getElementById(reqId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.style.borderColor = 'var(--cyan)';
+          el.style.boxShadow = '0 0 25px rgba(56, 189, 248, 0.4)';
+          setTimeout(() => {
+            el.style.borderColor = '';
+            el.style.boxShadow = '';
+          }, 2000);
+        }
+      }, 100);
+    }
+
+    // Category Filter Pills
+    function filterCards(category) {
+      const pills = document.querySelectorAll('.filter-pill');
+      pills.forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+
+      const cards = document.querySelectorAll('.req-card');
+      cards.forEach(card => {
+        if (category === 'all' || card.getAttribute('data-category') === category) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    // Real-Time Search in Requirements
+    function searchRequirements() {
+      const query = document.getElementById('reqSearchInput').value.toLowerCase();
+      const cards = document.querySelectorAll('.req-card');
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(query) ? 'block' : 'none';
+      });
+    }
+
+    // Playground Simulator 1: Confidence Math
+    function updateConfidenceSim() {
+      const dom = parseFloat(document.getElementById('slider-dom').value);
+      const corrob = parseFloat(document.getElementById('slider-corrob').value);
+      const share = parseFloat(document.getElementById('slider-share').value);
+      const consist = parseFloat(document.getElementById('slider-consist').value);
+      const ml = parseFloat(document.getElementById('slider-ml').value);
+
+      document.getElementById('val-dom').textContent = dom.toFixed(2);
+      document.getElementById('val-corrob').textContent = corrob.toFixed(2);
+      document.getElementById('val-share').textContent = share.toFixed(2);
+      document.getElementById('val-consist').textContent = consist.toFixed(2);
+      document.getElementById('val-ml').textContent = ml.toFixed(2);
+
+      const evidence = (0.40 * dom) + (0.25 * corrob) + (0.20 * share) + (0.15 * consist);
+      const confidence = (0.55 * evidence) + (0.45 * ml);
+      const confPct = (confidence * 100).toFixed(1);
+
+      const resultVal = document.getElementById('result-conf');
+      const resultSub = document.getElementById('result-conf-trust');
+      resultVal.textContent = `${confPct}%`;
+
+      if (confidence >= 0.70) {
+        resultVal.style.color = 'var(--emerald)';
+        resultSub.textContent = 'Trust Classification: HIGH CONFIDENCE (Actionable PFA)';
+      } else if (confidence >= 0.45) {
+        resultVal.style.color = 'var(--amber)';
+        resultSub.textContent = 'Trust Classification: MODERATE CONFIDENCE (Secondary Suspect)';
+      } else {
+        resultVal.style.color = 'var(--rose)';
+        resultSub.textContent = 'Trust Classification: LOW CONFIDENCE (Dilute / Point Defect)';
+      }
+    }
+
+    // Playground Simulator 2: Chain Break Certainty Gate
+    function updateBreakSim() {
+      const soft = parseInt(document.getElementById('slider-soft').value, 10);
+      const pats = parseInt(document.getElementById('slider-pats').value, 10);
+
+      document.getElementById('val-soft').textContent = `${soft}%`;
+      document.getElementById('val-pats').textContent = pats;
+
+      const isCertain = (soft >= 70 && pats >= 2);
+      const resultEl = document.getElementById('result-break-status');
+      const reasonEl = document.getElementById('result-break-reason');
+
+      if (isCertain) {
+        resultEl.textContent = 'CERTAIN';
+        resultEl.style.color = 'var(--emerald)';
+        reasonEl.textContent = `Production gate passed: ${soft}% soft agreement (≥ 70%) with ${pats} patterns (≥ 2).`;
+      } else {
+        resultEl.textContent = 'UNCERTAIN';
+        resultEl.style.color = 'var(--amber)';
+        let reason = [];
+        if (soft < 70) reason.push(`Soft agreement ${soft}% &lt; 70% threshold`);
+        if (pats < 2) reason.push(`${pats} pattern &lt; 2 required`);
+        reasonEl.innerHTML = `Production honesty gate: ${reason.join(' and ')}. Candidate cell exposed for review.`;
+      }
+    }
+
+    // Playground Simulator 3: Cycle Offset Math
+    function updateOffsetSim() {
+      const chainLen = parseInt(document.getElementById('slider-chain-len').value, 10);
+      const shiftCycleSlider = document.getElementById('slider-shift-cycle');
+      shiftCycleSlider.max = chainLen;
+      
+      let shiftCycle = parseInt(shiftCycleSlider.value, 10);
+      if (shiftCycle > chainLen) {
+        shiftCycle = chainLen;
+        shiftCycleSlider.value = chainLen;
+      }
+
+      document.getElementById('val-chain-len').textContent = chainLen;
+      document.getElementById('val-shift-cycle').textContent = shiftCycle;
+
+      const offset = chainLen - 1 - shiftCycle;
+      document.getElementById('result-offset').textContent = `Cell #${offset}`;
+      document.getElementById('result-offset-sub').textContent = `Offset from Scan-In pin: ${offset} cells (Bit position: ${shiftCycle})`;
+    }
+
+    // Initialize simulators on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      updateConfidenceSim();
+      updateBreakSim();
+      updateOffsetSim();
+    });
+  </script>
+</body>
+</html>

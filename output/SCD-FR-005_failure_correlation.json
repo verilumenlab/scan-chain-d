@@ -1,0 +1,298 @@
+{
+  "requirement_id": "SCD-FR-005",
+  "requirement": "Correlate failures with scan chains",
+  "acceptance_criteria": "Scan-chain-to-failure correlation report generated.",
+  "status": "satisfied",
+  "generated_at": "2026-09-09T16:39:55.276472+00:00",
+  "correlation_metrics": [
+    {
+      "chain": "channel1",
+      "fail_count": 153,
+      "correlations": {
+        "ir_drop_mv": -0.0214,
+        "thermal_c": -0.0054,
+        "setup_slack_ps": 0.0041,
+        "hold_slack_ps": -0.0008,
+        "ai_severity_score": -0.0292
+      },
+      "averages": {
+        "ir_drop_mv": 54.21568627450981,
+        "thermal_c": 79.77124183006536,
+        "setup_slack_ps": -20.33986928104575,
+        "hold_slack_ps": -7.862745098039215
+      }
+    },
+    {
+      "chain": "channel10",
+      "fail_count": 157,
+      "correlations": {
+        "ir_drop_mv": -0.0208,
+        "thermal_c": 0.0065,
+        "setup_slack_ps": -0.0038,
+        "hold_slack_ps": 0.0495,
+        "ai_severity_score": 0.0068
+      },
+      "averages": {
+        "ir_drop_mv": 54.2484076433121,
+        "thermal_c": 80.10191082802548,
+        "setup_slack_ps": -20.840764331210192,
+        "hold_slack_ps": -6.222929936305732
+      }
+    },
+    {
+      "chain": "channel12",
+      "fail_count": 55,
+      "correlations": {
+        "ir_drop_mv": 0.0079,
+        "thermal_c": -0.0014,
+        "setup_slack_ps": 0.0089,
+        "hold_slack_ps": 0.0301,
+        "ai_severity_score": -0.0153
+      },
+      "averages": {
+        "ir_drop_mv": 55.54545454545455,
+        "thermal_c": 79.85454545454546,
+        "setup_slack_ps": -19.636363636363637,
+        "hold_slack_ps": -6.1454545454545455
+      }
+    },
+    {
+      "chain": "channel13",
+      "fail_count": 59,
+      "correlations": {
+        "ir_drop_mv": -0.0335,
+        "thermal_c": 0.0072,
+        "setup_slack_ps": 0.009,
+        "hold_slack_ps": -0.0155,
+        "ai_severity_score": -0.0203
+      },
+      "averages": {
+        "ir_drop_mv": 52.932203389830505,
+        "thermal_c": 80.2542372881356,
+        "setup_slack_ps": -19.661016949152543,
+        "hold_slack_ps": -8.677966101694915
+      }
+    },
+    {
+      "chain": "channel14",
+      "fail_count": 133,
+      "correlations": {
+        "ir_drop_mv": -0.0182,
+        "thermal_c": 0.0103,
+        "setup_slack_ps": 0.0369,
+        "hold_slack_ps": -0.0039,
+        "ai_severity_score": 0.0039
+      },
+      "averages": {
+        "ir_drop_mv": 54.285714285714285,
+        "thermal_c": 80.23308270676692,
+        "setup_slack_ps": -18.06766917293233,
+        "hold_slack_ps": -7.977443609022556
+      }
+    },
+    {
+      "chain": "channel16",
+      "fail_count": 200,
+      "correlations": {
+        "ir_drop_mv": 0.0104,
+        "thermal_c": 0.0158,
+        "setup_slack_ps": -0.0236,
+        "hold_slack_ps": 0.0118,
+        "ai_severity_score": 0.0073
+      },
+      "averages": {
+        "ir_drop_mv": 55.375,
+        "thermal_c": 80.305,
+        "setup_slack_ps": -21.905,
+        "hold_slack_ps": -7.5
+      }
+    },
+    {
+      "chain": "channel19",
+      "fail_count": 122,
+      "correlations": {
+        "ir_drop_mv": -0.0061,
+        "thermal_c": -0.0312,
+        "setup_slack_ps": -0.0039,
+        "hold_slack_ps": -0.0024,
+        "ai_severity_score": -0.0145
+      },
+      "averages": {
+        "ir_drop_mv": 54.77049180327869,
+        "thermal_c": 78.94262295081967,
+        "setup_slack_ps": -20.885245901639344,
+        "hold_slack_ps": -7.926229508196721
+      }
+    },
+    {
+      "chain": "channel2",
+      "fail_count": 60,
+      "correlations": {
+        "ir_drop_mv": 0.0263,
+        "thermal_c": 0.0164,
+        "setup_slack_ps": -0.0146,
+        "hold_slack_ps": -0.0027,
+        "ai_severity_score": 0.0086
+      },
+      "averages": {
+        "ir_drop_mv": 56.666666666666664,
+        "thermal_c": 80.66666666666667,
+        "setup_slack_ps": -22.116666666666667,
+        "hold_slack_ps": -7.983333333333333
+      }
+    },
+    {
+      "chain": "channel20",
+      "fail_count": 151,
+      "correlations": {
+        "ir_drop_mv": 0.0262,
+        "thermal_c": 0.0115,
+        "setup_slack_ps": -0.0036,
+        "hold_slack_ps": -0.0192,
+        "ai_severity_score": 0.0177
+      },
+      "averages": {
+        "ir_drop_mv": 56.03973509933775,
+        "thermal_c": 80.24503311258277,
+        "setup_slack_ps": -20.834437086092716,
+        "hold_slack_ps": -8.47682119205298
+      }
+    },
+    {
+      "chain": "channel21",
+      "fail_count": 158,
+      "correlations": {
+        "ir_drop_mv": 0.0276,
+        "thermal_c": -0.0078,
+        "setup_slack_ps": 0.0049,
+        "hold_slack_ps": -0.0021,
+        "ai_severity_score": 0.0074
+      },
+      "averages": {
+        "ir_drop_mv": 56.06962025316456,
+        "thermal_c": 79.70886075949367,
+        "setup_slack_ps": -20.29746835443038,
+        "hold_slack_ps": -7.905063291139241
+      }
+    },
+    {
+      "chain": "channel22",
+      "fail_count": 61,
+      "correlations": {
+        "ir_drop_mv": -0.0239,
+        "thermal_c": -0.0158,
+        "setup_slack_ps": -0.0421,
+        "hold_slack_ps": 0.0292,
+        "ai_severity_score": -0.0051
+      },
+      "averages": {
+        "ir_drop_mv": 53.557377049180324,
+        "thermal_c": 79.21311475409836,
+        "setup_slack_ps": -24.934426229508198,
+        "hold_slack_ps": -6.278688524590164
+      }
+    },
+    {
+      "chain": "channel23",
+      "fail_count": 136,
+      "correlations": {
+        "ir_drop_mv": 0.0283,
+        "thermal_c": 0.0172,
+        "setup_slack_ps": -0.0389,
+        "hold_slack_ps": -0.0054,
+        "ai_severity_score": 0.0122
+      },
+      "averages": {
+        "ir_drop_mv": 56.18382352941177,
+        "thermal_c": 80.43382352941177,
+        "setup_slack_ps": -23.24264705882353,
+        "hold_slack_ps": -8.029411764705882
+      }
+    },
+    {
+      "chain": "channel3",
+      "fail_count": 289,
+      "correlations": {
+        "ir_drop_mv": -0.0148,
+        "thermal_c": -0.0165,
+        "setup_slack_ps": 0.0086,
+        "hold_slack_ps": 0.022,
+        "ai_severity_score": -0.0074
+      },
+      "averages": {
+        "ir_drop_mv": 54.63321799307958,
+        "thermal_c": 79.59861591695501,
+        "setup_slack_ps": -20.214532871972317,
+        "hold_slack_ps": -7.325259515570934
+      }
+    },
+    {
+      "chain": "channel5",
+      "fail_count": 132,
+      "correlations": {
+        "ir_drop_mv": -0.0105,
+        "thermal_c": 0.0101,
+        "setup_slack_ps": -0.0193,
+        "hold_slack_ps": -0.0003,
+        "ai_severity_score": 0.0081
+      },
+      "averages": {
+        "ir_drop_mv": 54.59848484848485,
+        "thermal_c": 80.22727272727273,
+        "setup_slack_ps": -21.931818181818183,
+        "hold_slack_ps": -7.848484848484849
+      }
+    },
+    {
+      "chain": "channel6",
+      "fail_count": 171,
+      "correlations": {
+        "ir_drop_mv": 0.002,
+        "thermal_c": -0.0251,
+        "setup_slack_ps": 0.035,
+        "hold_slack_ps": -0.0212,
+        "ai_severity_score": -0.008
+      },
+      "averages": {
+        "ir_drop_mv": 55.10526315789474,
+        "thermal_c": 79.26315789473684,
+        "setup_slack_ps": -18.502923976608187,
+        "hold_slack_ps": -8.497076023391813
+      }
+    },
+    {
+      "chain": "channel7",
+      "fail_count": 302,
+      "correlations": {
+        "ir_drop_mv": 0.0085,
+        "thermal_c": 0.0051,
+        "setup_slack_ps": -0.0058,
+        "hold_slack_ps": -0.0333,
+        "ai_severity_score": 0.0072
+      },
+      "averages": {
+        "ir_drop_mv": 55.25496688741722,
+        "thermal_c": 80.01986754966887,
+        "setup_slack_ps": -20.85430463576159,
+        "hold_slack_ps": -8.596026490066226
+      }
+    },
+    {
+      "chain": "channel9",
+      "fail_count": 119,
+      "correlations": {
+        "ir_drop_mv": 0.0037,
+        "thermal_c": 0.0085,
+        "setup_slack_ps": 0.038,
+        "hold_slack_ps": -0.0199,
+        "ai_severity_score": 0.0087
+      },
+      "averages": {
+        "ir_drop_mv": 55.19327731092437,
+        "thermal_c": 80.19327731092437,
+        "setup_slack_ps": -17.840336134453782,
+        "hold_slack_ps": -8.588235294117647
+      }
+    }
+  ]
+}
